@@ -3,8 +3,8 @@
 #include "window.h"
 #include "context.h"
 #include "worley.h"
-#define WIDTH  1024
-#define HEIGHT 768 
+#define WIDTH 1024 
+#define HEIGHT 1024 
 
 int EXIT_STATUS = 0;
 
@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 	/* window + renderer */
 	window_t *window = window_create(WIDTH, HEIGHT);
 	context_t *context = context_create(WIDTH, HEIGHT);
-	
+
 	int x, y;
 	for (y = 0; y < HEIGHT; y++)
 	for (x = 0; x < WIDTH ; x++)
@@ -30,6 +30,7 @@ int main(int argc, char **argv)
 
 	worley_generate_euclidean(context);
 	window_draw(window, context->pixels);
+
 
 	for (;;) 
 	{

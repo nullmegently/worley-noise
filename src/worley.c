@@ -16,8 +16,10 @@ static double randr(int min, int max)
 
 static void distribute_points(int width, int height, int num)
 {
+
 	points = malloc(sizeof(vec3d_t *) * num);
 	points_size = num;
+
 
 	srand(time(NULL));
 
@@ -54,8 +56,7 @@ void worley_generate_euclidean(context_t *context)
 
 void worley_generate(context_t *context, distance_func func)
 {
-	distribute_points(context->width, context->height, 10);	
-	int max_distance = 0;
+	distribute_points(context->width, context->height, 500);	
 
 	int x, y, i;
 	for (y = 0; y < context->height; y++)
@@ -77,17 +78,14 @@ void worley_generate(context_t *context, distance_func func)
 				closest_dist = pdist;
 				closest = points[i];
 			}
-
-			if (pdist > max_distance)
-				max_distance = pdist;
 		}
 
-		int h = (int) (closest->z / (0.05 * closest_dist));
-		if (h > 255) h = 255;
-		if (h < 0)   h = 0;
+		int h = closest->z - (5 * closest_dist);
+		if (h > closest->z) h = closest->z;
+		if (h < 0) h = 0;
+
 		context_set_pixel(context, x, y, h, h, h);
 	}
-
 
 	cleanup();
 }

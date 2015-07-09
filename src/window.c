@@ -46,7 +46,7 @@ struct window *window_create(int width, int height)
 		return NULL;
 	}
 
-	SDL_Delay(50); /* attempting to draw directly after initialization fails under certain window managers */
+	SDL_Delay(500); /* attempting to draw directly after initialization fails under certain window managers */
 
 	return window;
 }
