@@ -14,6 +14,5 @@ typedef struct vec3d
 typedef double (*distance_func)(vec3d_t *, vec3d_t *); 
 void worley_generate(struct context *, distance_func);
 void worley_generate_euclidean(struct context *);
-
-
+void worley_generate_manhattan(struct context *);
 #endif

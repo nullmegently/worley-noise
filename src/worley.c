@@ -44,6 +44,11 @@ static double euclidean_distance(vec3d_t *p1, vec3d_t *p2)
 	return sqrt(dx * dx + dy * dy);
 }
 
+static double manhattan_distance(vec3d_t *p1, vec3d_t *p2)
+{
+	return fabs(p1->x - p2->x) + fabs(p1->y - p2->y);
+}
+
 static void cleanup(void)
 {
 	int i;
@@ -58,6 +63,11 @@ void worley_generate_euclidean(context_t *context)
 	worley_generate(context, euclidean_distance);
 }
 
+void worley_generate_manhattan(context_t *context)
+{
+	worley_generate(context, manhattan_distance);
+}
+
 int cmpfunc(const void *a, const void *b)
 {
 	double *x = (double *) a;	
@@ -67,7 +77,7 @@ int cmpfunc(const void *a, const void *b)
 
 void worley_generate(context_t *context, distance_func func)
 {
-	distribute_points(context->width, context->height, 500);	
+	distribute_points(context->width, context->height, 200);	
 
 	int x, y, i;
 	for (y = 0; y < context->height; y++)
