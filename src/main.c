@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "window.h"
 #include "context.h"
+#include "worley.h"
 #define WIDTH  1024
 #define HEIGHT 768 
 
@@ -24,22 +25,22 @@ int main(int argc, char **argv)
 	for (y = 0; y < HEIGHT; y++)
 	for (x = 0; x < WIDTH ; x++)
 	{
-		context_set_pixel(context, x, y, 0, 0, 255);
+		context_set_pixel(context, x, y, 255, 255, 255);
 	}
+
+	worley_generate_euclidean(context);
+	window_draw(window, context->pixels);
 
 	for (;;) 
 	{
-		window_draw(window, context->pixels);
-
-
 		window_process_events();
 		if (window_quit_requested()) 
 			break;
 	}
 	
 
-	exit:
-		window_destroy(window);
+	context_destroy(context);
+	window_destroy(window);
 
 	return 0;
 }
