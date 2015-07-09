@@ -7,6 +7,7 @@
 #include "context.h"
 
 static vec3d_t **points;
+static double *dist_from_point; /* storing all distances during xy iteration */
 static int points_size;
 
 static double randr(int min, int max)
@@ -18,8 +19,10 @@ static void distribute_points(int width, int height, int num)
 {
 
 	points = malloc(sizeof(vec3d_t *) * num);
+	dist_from_point = malloc(sizeof(double) * num);
+	if (!points || !dist_from_point)
+		return;
 	points_size = num;
-
 
 	srand(time(NULL));
 
@@ -46,12 +49,20 @@ static void cleanup(void)
 	int i;
 	for (i = 0; i < points_size; i++)
 		free(points[i]);
+	free(dist_from_point);
 	free(points);
 }
 
 void worley_generate_euclidean(context_t *context)
 {
 	worley_generate(context, euclidean_distance);
+}
+
+int cmpfunc(const void *a, const void *b)
+{
+	double *x = (double *) a;	
+	double *y = (double *) b;	
+	return *x - *y;
 }
 
 void worley_generate(context_t *context, distance_func func)
@@ -64,6 +75,7 @@ void worley_generate(context_t *context, distance_func func)
 	{
 		double closest_dist = INT_MAX;
 		vec3d_t *closest = NULL;
+		int dist_idx = 0;
 
 		for (i = 0; i < points_size; i++)
 		{
@@ -72,6 +84,8 @@ void worley_generate(context_t *context, distance_func func)
 			screen_pos.y = y;
 			
 			double pdist = func(points[i], &screen_pos);		
+			dist_from_point[dist_idx++] = pdist;
+
 			
 			if (pdist < closest_dist)
 			{
@@ -80,7 +94,10 @@ void worley_generate(context_t *context, distance_func func)
 			}
 		}
 
-		int h = closest->z - (5 * closest_dist);
+		qsort(dist_from_point, points_size, sizeof(double), cmpfunc);
+
+
+		int h = closest->z - (5 * (dist_from_point[0]));
 		if (h > closest->z) h = closest->z;
 		if (h < 0) h = 0;
 
