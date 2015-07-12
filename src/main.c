@@ -3,8 +3,8 @@
 #include "window.h"
 #include "context.h"
 #include "worley.h"
-#define WIDTH 256
-#define HEIGHT 256 
+#define WIDTH 512
+#define HEIGHT 512 
 
 int EXIT_STATUS = 0;
 
@@ -28,10 +28,11 @@ int main(int argc, char **argv)
 		context_set_pixel(context, x, y, 255, 255, 255);
 	}
 
-	//worley_generate_euclidean(context);
-	worley_generate_manhattan(context);
+	worley_generate_euclidean(context);
+	//worley_generate_manhattan(context);
 	window_draw(window, context->pixels);
 
+	window_save(window, context);
 
 	for (;;) 
 	{

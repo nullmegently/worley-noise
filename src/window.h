@@ -14,6 +14,7 @@ typedef enum
 } keys;
 
 static int quit_requested = 0;
+struct context; 
 
 typedef struct window 
 {
@@ -26,6 +27,7 @@ typedef struct window
 
 struct window *window_create(int, int);
 void   window_draw(struct window *, unsigned int *);
+void window_save(window_t *, struct context *);
 void   window_process_events(void);
 int    window_quit_requested(void);
 const char *window_get_keystate(void);

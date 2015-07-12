@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h>
 #include "window.h"
+#include "context.h"
 
 /* separate all the methods responsible for manipulating windows 
  * from the rest of the application for ease of switching to different 
@@ -51,11 +52,33 @@ struct window *window_create(int width, int height)
 	return window;
 }
 
-void window_draw(window_t *window, unsigned int * buf)
+void window_draw(window_t *window, unsigned int *buf)
 {
 	SDL_UpdateTexture(window->canvas, NULL, buf, window->width * sizeof(int));
 	SDL_RenderCopy(window->renderer, window->canvas, NULL, NULL);
 	SDL_RenderPresent(window->renderer);
+}
+
+void window_save(window_t *window, context_t *context)
+{
+	SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(context->pixels, 
+			context->width, 
+			context->height,
+			32,
+			context->width * 4,
+			0x00ff0000,
+			0x0000ff00,
+			0x000000ff,
+			0xff000000);
+
+	if (!surface)
+	{
+		printf("bad bmp\n");
+		return;
+	}
+
+	SDL_SaveBMP(surface, "test.bmp");
+	SDL_FreeSurface(surface);
 }
 
 void window_process_events(void)
