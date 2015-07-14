@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include "worley.h"
 
@@ -24,6 +25,7 @@ static int bucket_pool_init(int width, int height)
 	buckets.grid_width  = (int) ceil((double) width  / (double) GRID_WIDTH);
 	buckets.grid_height = (int) ceil((double) height / (double) GRID_HEIGHT);
 	buckets.pool = malloc(sizeof(bucket_t *) * buckets.grid_width * buckets.grid_height);
+
 	if (!buckets.pool) return 0;
 
 	int gx = 0; 
@@ -37,6 +39,10 @@ static int bucket_pool_init(int width, int height)
 		{
 			bucket_t *bucket = malloc(sizeof(bucket_t));
 			if (!bucket) return 0;
+
+			bucket->points = malloc(sizeof(vec3d_t *));
+			bucket->num_points = 0;
+			if (!bucket->points) return 0;
 
 			bucket->start.x = x;
 			bucket->start.y = y;
@@ -65,6 +71,24 @@ static int bucket_pool_init(int width, int height)
 	return 1;
 }
 
+static void bucket_pool_free(void)
+{
+	int i, j;
+	for (i = 0; i < buckets.grid_width * buckets.grid_height; i++)
+	{
+		if (!buckets.pool[i]) continue;
+		bucket_t *bucket = buckets.pool[i];
+
+		for (j = 0; j < bucket->num_points; j++)
+			free(bucket->points[j]);
+
+		free(bucket->points);
+		free(buckets.pool[i]);
+	}
+
+	free(buckets.pool);
+}
+
 int main()
 {
 	bucket_pool_init(350,200);
@@ -75,5 +99,6 @@ int main()
 		bucket_t *b = buckets.pool[i];
 		printf("start: %d, %d end: %d, %d\n", b->start.x, b->start.y, b->end.x, b->end.y);
 	}
+	bucket_pool_free();
 	return 0;
 }
