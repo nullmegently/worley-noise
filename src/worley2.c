@@ -28,6 +28,11 @@ static int bucket_pool_init(int width, int height)
 
 	if (!buckets.pool) return 0;
 
+	/* set array contents to NULL */
+	int n;
+	for ( n = 0; n < buckets.grid_width * buckets.grid_height; n++)
+		buckets.pool[n] = NULL;
+
 	int gx = 0; 
 	int gy = 0;
 	int x = 0;
@@ -40,9 +45,8 @@ static int bucket_pool_init(int width, int height)
 			bucket_t *bucket = malloc(sizeof(bucket_t));
 			if (!bucket) return 0;
 
-			bucket->points = malloc(sizeof(vec3d_t *));
+			bucket->points = NULL;
 			bucket->num_points = 0;
-			if (!bucket->points) return 0;
 
 			bucket->start.x = x;
 			bucket->start.y = y;
@@ -59,7 +63,9 @@ static int bucket_pool_init(int width, int height)
 
 			int idx = gy * buckets.grid_width + gx;
 			buckets.pool[idx] = bucket;
-			printf("%d\n", idx);
+
+			if (idx == 4)
+				return 0;
 
 			x += GRID_WIDTH;
 		}
@@ -73,16 +79,21 @@ static int bucket_pool_init(int width, int height)
 
 static void bucket_pool_free(void)
 {
-	int i, j;
+	if (!buckets.pool) return;
+
+	int i = 0;
+	int j = 0;
 	for (i = 0; i < buckets.grid_width * buckets.grid_height; i++)
 	{
 		if (!buckets.pool[i]) continue;
-		bucket_t *bucket = buckets.pool[i];
 
-		for (j = 0; j < bucket->num_points; j++)
-			free(bucket->points[j]);
+		for (j = 0; j < buckets.pool[i]->num_points; j++)
+		{
+			if (!buckets.pool[i]->points[j]) continue;
+			free(buckets.pool[i]->points[j]);
+		}
 
-		free(bucket->points);
+		free(buckets.pool[i]->points);
 		free(buckets.pool[i]);
 	}
 
@@ -91,7 +102,13 @@ static void bucket_pool_free(void)
 
 int main()
 {
-	bucket_pool_init(350,200);
+	int ret = bucket_pool_init(350,200);
+	if (ret == 0)
+	{
+		printf("here\n");
+		bucket_pool_free();
+		return 0;
+	}
 	int i;
 	printf("%d, %d bucket_pool\n", buckets.grid_width, buckets.grid_height);
 	for (i = 0; i < buckets.grid_width * buckets.grid_height; i++)
