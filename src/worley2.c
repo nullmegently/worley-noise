@@ -17,10 +17,15 @@ static void clamp(int *actual, int min, int max)
 	if (*actual > max) *actual = max;
 }
 
-static int bucket_pool_valid(int actual)
+static int bucket_pool_valid(vec3i_t *v)
 {
-	if (actual >= 0 && actual < buckets.grid_width * buckets.grid_height) 
+	int x = v->x;
+	int y = v->y;
+
+	if (x >= 0 && x < buckets.grid_width 
+	 && y >= 0 && y < buckets.grid_height) 
 		return 1;
+
 	return 0;
 }
 
@@ -129,30 +134,41 @@ static int bucket_get_neighbours(bucket_t *bucket, bucket_t **neighbours)
 	int ty = bucket->grid_coordinates.y - 1;		
 	int by = bucket->grid_coordinates.y + 1;		
 
-	/* at most 8 neighbours expected */
-	int nidx[NUM_NEIGHBOURS];
+	/* store x,y positions of neighbors */
+	vec3i_t nidx[NUM_NEIGHBOURS];
 
 	/* neighbours above target bucket from left to right */
-	nidx[0] = ty * buckets.grid_width + lx; 
-	nidx[1] = ty * buckets.grid_width + bucket->grid_coordinates.x;
-	nidx[2] = ty * buckets.grid_width + rx; 
+	nidx[0].x = lx;
+	nidx[0].y = ty;
+	nidx[1].x = bucket->grid_coordinates.x;
+	nidx[1].y = ty;
+	nidx[2].x = rx;
+	nidx[2].y = ty;
 
 	/* neigbours on the left and right of target bucket */
-	nidx[3] = bucket->grid_coordinates.y * buckets.grid_width + lx;
-	nidx[4] = bucket->grid_coordinates.y * buckets.grid_width + rx;
+	nidx[3].x = lx;
+	nidx[3].y = bucket->grid_coordinates.y;
+	nidx[4].x = rx;
+	nidx[4].y = bucket->grid_coordinates.y;
 
 	/* neighbours below target bucket from left to right */
-	nidx[5] = by * buckets.grid_width + lx; 
-	nidx[6] = by * buckets.grid_width + bucket->grid_coordinates.x;
-	nidx[7] = by * buckets.grid_width + rx; 
-	
+	nidx[5].x = lx;
+	nidx[5].y = by;
+	nidx[6].x = bucket->grid_coordinates.x;
+	nidx[6].y = by;
+	nidx[7].x = rx;
+	nidx[7].y = by;
+
 	int num_neighbours = 0; 
 
 	int i;
 	for (i = 0; i < NUM_NEIGHBOURS; i++)
 	{
-		if (bucket_pool_valid(nidx[i])) 
-			neighbours[num_neighbours++] = buckets.pool[nidx[i]];
+		if (bucket_pool_valid(&nidx[i])) 
+		{
+			int idx = nidx[i].y * buckets.grid_width + nidx[i].x;
+			neighbours[num_neighbours++] = buckets.pool[idx];
+		}
 	}
 	
 	return num_neighbours;
@@ -160,7 +176,7 @@ static int bucket_get_neighbours(bucket_t *bucket, bucket_t **neighbours)
 
 int main()
 {
-	int ret = bucket_pool_init(350,300, 100);
+	int ret = bucket_pool_init(400, 300, 100);
 	if (ret == 0)
 	{
 		bucket_pool_free();
@@ -176,9 +192,11 @@ int main()
 	}
 	*/
 
-	int idx = 1 * buckets.grid_width + 1;
+	int idx = 1 * buckets.grid_width + 0;
 	clear_neighbours_buf();
 	int n = bucket_get_neighbours(buckets.pool[idx], neighbours);
+	bucket_t *a = buckets.pool[idx];
+	printf("target start: %d, %d end: %d, %d\n", a->start.x, a->start.y, a->end.x, a->end.y);
 
 	printf("%d neigbours\n", n);
 
