@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <time.h>
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -15,6 +17,12 @@ static void clamp(int *actual, int min, int max)
 {
 	if (*actual < min) *actual = min;
 	if (*actual > max) *actual = max;
+}
+
+static double randr(int min, int max)
+{
+	assert(min < max);
+	return  (rand() % (max - min)) + min;
 }
 
 static int bucket_pool_valid(vec3i_t *v)
@@ -36,9 +44,18 @@ static void clear_neighbours_buf(void)
 		neighbours[i] = NULL;
 }
 
-static void distribute_points(bucket_t *bucket, int num)
+static int distribute_points(bucket_t *bucket, int num)
 {
+	bucket->points = malloc(sizeof(vec3d_t) * num);
+	if (!bucket->points) return 0;
 
+	int i;
+	for (i = 0; i < num; i++)
+	{
+
+	}
+	
+	return 1;
 }
 
 static int bucket_pool_init(int width, int height, int seed)
@@ -108,16 +125,9 @@ static void bucket_pool_free(void)
 	if (!buckets.pool) return;
 
 	int i = 0;
-	int j = 0;
 	for (i = 0; i < buckets.grid_width * buckets.grid_height; i++)
 	{
 		if (!buckets.pool[i]) continue;
-
-		for (j = 0; j < buckets.pool[i]->num_points; j++)
-		{
-			if (!buckets.pool[i]->points[j]) continue;
-			free(buckets.pool[i]->points[j]);
-		}
 
 		free(buckets.pool[i]->points);
 		free(buckets.pool[i]);
@@ -176,6 +186,12 @@ static int bucket_get_neighbours(bucket_t *bucket, bucket_t **neighbours)
 
 int main()
 {
+	int i;
+
+	srand(time(NULL));
+	for (i = 0; i < 20; i++)
+		printf("%f\n", randr(10, 12));
+	/*
 	int ret = bucket_pool_init(400, 300, 100);
 	if (ret == 0)
 	{
@@ -184,13 +200,11 @@ int main()
 	}
 
 	int i;
-	/*
 	for (i = 0; i < buckets.grid_width * buckets.grid_height; i++)
 	{
 		bucket_t *b = buckets.pool[i];
 		printf("start: %d, %d end: %d, %d\n", b->start.x, b->start.y, b->end.x, b->end.y);
 	}
-	*/
 
 	int idx = 1 * buckets.grid_width + 0;
 	clear_neighbours_buf();
@@ -207,5 +221,7 @@ int main()
 	}
 
 	bucket_pool_free();
+
+	*/
 	return 0;
 }
