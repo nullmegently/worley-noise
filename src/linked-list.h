@@ -22,6 +22,6 @@ linked_list_t *linked_list_init(cmp_func);
 void linked_list_clear(linked_list_t *);
 void linked_list_free(linked_list_t *);
 int linked_list_sorted_insert(linked_list_t *, void *);
-void *linked_list_get_element_at(linked_list_t *, int);
+const void *linked_list_get_element_at(linked_list_t *, int);
 
 #endif

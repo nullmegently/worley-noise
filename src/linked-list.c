@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <assert.h>
 #include <stdio.h>
 #include "linked-list.h"
 
@@ -100,6 +101,18 @@ int linked_list_sorted_insert(linked_list_t *list, void *elem)
 	return 0;
 }
 
+const void *linked_list_get_element_at(linked_list_t *list, int index)
+{
+	assert(index >= 0 && index < list->size);
+
+	list_node_t *current = list->tail;
+	int i;
+	for (i = 0; i < index; i++)
+		current = current->next;
+
+	return current->data;
+}
+
 void linked_list_print(linked_list_t *list)
 {
 	int *head = (int *) list->head->data;
@@ -148,7 +161,12 @@ int main()
 	linked_list_sorted_insert(list, g);
 
 	linked_list_print(list);
-	linked_list_free(list);
 
+	const int *bla = (int *) linked_list_get_element_at(list, 6);
+
+	printf("bla = %d\n", *bla); 
+
+	linked_list_clear(list);
+	linked_list_free(list);
 	return 0;
 }
