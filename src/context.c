@@ -36,3 +36,12 @@ void context_set_pixel(context_t *context, int x, int y, unsigned char r, unsign
 	context->pixels[i] += (g << 8);
 	context->pixels[i] += (b);
 }
+
+void context_fill(context_t *context, unsigned int r, unsigned int g, unsigned int b)
+{
+	int x, y;
+	for (y = 0; y < context->height; y++)
+	for (x = 0; x < context->width ; x++)
+		context_set_pixel(context, x, y, r, g, b);
+}
+

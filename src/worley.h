@@ -23,6 +23,7 @@ typedef struct bucket
 	vec3i_t end;
 	vec3i_t grid_coordinates;
 	vec3d_t *points;
+	double *dists_to_points;
 	int num_points;
 } bucket_t;
 

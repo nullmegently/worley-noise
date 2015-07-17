@@ -5,6 +5,8 @@
 #include <string.h>
 #include <math.h>
 #include "worley.h"
+#include "linked-list.h"
+#include "context.h"
 
 #define GRID_WIDTH 100
 #define GRID_HEIGHT 100
@@ -17,6 +19,21 @@ static void clamp(int *actual, int min, int max)
 {
 	if (*actual < min) *actual = min;
 	if (*actual > max) *actual = max;
+}
+
+static int linked_list_sorted_insert_double(linked_list_t *list, double num)
+{
+	int *n = malloc(sizeof(double));
+	if (!n) return 0;
+	*n = num;
+	return linked_list_sorted_insert(list, (void *) n);
+}
+
+static int double_cmp( void *a, void *b)
+{
+	double *x = (double *) a;
+	double *y = (double *) b;
+	return *x > *y;
 }
 
 static double randr(int min, int max)
@@ -37,11 +54,11 @@ static int bucket_pool_valid(vec3i_t *v)
 	return 0;
 }
 
-static void clear_neighbours_buf(void)
+static void buf_clear(void **buf, int size)
 {
 	int i; 
-	for (i = 0; i < NUM_NEIGHBOURS; i++)
-		neighbours[i] = NULL;
+	for (i = 0; i < size; i++)
+		buf[i] = NULL;
 }
 
 static int distribute_points(bucket_t *bucket, int num)
@@ -52,7 +69,14 @@ static int distribute_points(bucket_t *bucket, int num)
 	int i;
 	for (i = 0; i < num; i++)
 	{
+		int sx = bucket->grid_coordinates.x;
+		int sy = bucket->grid_coordinates.y;
 
+		bucket->points[i].x = randr(sx + 1, sx + GRID_WIDTH);
+		bucket->points[i].y = randr(sy + 1, sy + GRID_HEIGHT);
+		bucket->points[i].z = 0;
+
+		printf("%f %f\n", bucket->points[i].x, bucket->points[i].y);
 	}
 	
 	return 1;
@@ -69,7 +93,7 @@ static int bucket_pool_init(int width, int height, int seed)
 
 	if (!buckets.pool) return 0;
 
-	/* set array contents to NULL */
+	/* clear pool */
 	int n;
 	for ( n = 0; n < buckets.grid_width * buckets.grid_height; n++)
 		buckets.pool[n] = NULL;
@@ -88,7 +112,9 @@ static int bucket_pool_init(int width, int height, int seed)
 
 			bucket->points = NULL;
 			bucket->num_points = 0;
-			distribute_points(bucket, 30);
+
+			/* failure mallocing bucket->points */
+			if (distribute_points(bucket, 30) == 0) return 0;
 
 			bucket->start.x = x;
 			bucket->start.y = y;
@@ -184,13 +210,32 @@ static int bucket_get_neighbours(bucket_t *bucket, bucket_t **neighbours)
 	return num_neighbours;
 }
 
+static void worley_process_bucket(bucket_t *bucket, bucket_t **neighbours, int nnum, linked_list_t *dist_list, distance_func distance)
+{
+	int x, y, i, j;
+	for (y = bucket->start.y; y < bucket->end.y; y++)
+	for (x = bucket->start.x; y < bucket->end.x; y++)
+	{
+		for (i = 0; i < nnum; i++)
+		for (j = 0; j < neighbours[i]->num_points; j++)
+		{
+				
+		}
+	}
+}
+
+
+void worley_generate(context_t *context, distance_func distance, int seed)
+{
+	if (!bucket_pool_init(context->width, context->height, seed))
+	{
+
+	}
+
+}
+
 int main()
 {
-	int i;
-
-	srand(time(NULL));
-	for (i = 0; i < 20; i++)
-		printf("%f\n", randr(10, 12));
 	/*
 	int ret = bucket_pool_init(400, 300, 100);
 	if (ret == 0)

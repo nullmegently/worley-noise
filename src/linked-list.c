@@ -25,6 +25,7 @@ void linked_list_clear(linked_list_t *list)
 
 	while (current != NULL)
 	{
+		free(current->data);
 		next = current->next;
 		free(current);
 		current = next;
@@ -113,6 +114,13 @@ const void *linked_list_get_element_at(linked_list_t *list, int index)
 	return current->data;
 }
 
+int linked_list_sorted_insert_int(linked_list_t *list, int number)
+{
+	int *n = malloc(sizeof(int));	
+	*n = number;
+	return linked_list_sorted_insert(list, (void *) n);
+}
+
 void linked_list_print(linked_list_t *list)
 {
 	int *head = (int *) list->head->data;
@@ -126,7 +134,7 @@ void linked_list_print(linked_list_t *list)
 	}
 }
 
-int int_cmp ( void *a, void *b)
+int double_cmp( void *a, void *b)
 {
 	int *x = (int *) a;
 	int *y = (int *) b;
@@ -135,38 +143,13 @@ int int_cmp ( void *a, void *b)
 
 int main()
 {
-	int *a = malloc(sizeof(int));
-	int *b = malloc(sizeof(int));
-	int *c = malloc(sizeof(int));
-	int *d = malloc(sizeof(int));
-	int *e = malloc(sizeof(int));
-	int *g = malloc(sizeof(int));
-
-	linked_list_t *list = linked_list_init(int_cmp);
-
-
-
-	*a = 4;
-	*b = 6;
-	*c = 1;
-	*d = 5;
-	*e = 10;
-	*g = 1;
-
-	linked_list_sorted_insert(list, a);
-	linked_list_sorted_insert(list, b);
-	linked_list_sorted_insert(list, c);
-	linked_list_sorted_insert(list, d);
-	linked_list_sorted_insert(list, e);
-	linked_list_sorted_insert(list, g);
-
+	linked_list_t *list = linked_list_init(double_cmp);
+	
+	linked_list_sorted_insert_int(list, 10);
+	linked_list_sorted_insert_int(list, 2);
+	linked_list_sorted_insert_int(list, 4);
 	linked_list_print(list);
 
-	const int *bla = (int *) linked_list_get_element_at(list, 6);
-
-	printf("bla = %d\n", *bla); 
-
-	linked_list_clear(list);
 	linked_list_free(list);
 	return 0;
 }
