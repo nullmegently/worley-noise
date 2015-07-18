@@ -15,6 +15,20 @@
 static bucket_pool_t buckets;
 static bucket_t *neighbours[NUM_NEIGHBOURS];
 
+/* various dist funcs go here */
+static double euclidean_distance(vec3d_t *p1, vec3d_t *p2)
+{
+	double dx = p2->x - p1->x;	
+	double dy = p2->y - p1->y;	
+	return sqrt(dx * dx + dy * dy);
+}
+
+static double manhattan_distance(vec3d_t *p1, vec3d_t *p2)
+{
+	return fabs(p1->x - p2->x) + fabs(p1->y - p2->y);
+}
+/*end dist funcs */
+
 static void clamp(int *actual, int min, int max)
 {
 	if (*actual < min) *actual = min;
@@ -27,6 +41,12 @@ static int linked_list_sorted_insert_double(linked_list_t *list, double num)
 	if (!n) return 0;
 	*n = num;
 	return linked_list_sorted_insert(list, (void *) n);
+}
+
+static double linked_list_get_double_at(linked_list_t *list, int index)
+{
+	const double *n = linked_list_get_element_at(list, index);
+	return *n;
 }
 
 static int double_cmp( void *a, void *b)
@@ -52,13 +72,6 @@ static int bucket_pool_valid(vec3i_t *v)
 		return 1;
 
 	return 0;
-}
-
-static void buf_clear(void **buf, int size)
-{
-	int i; 
-	for (i = 0; i < size; i++)
-		buf[i] = NULL;
 }
 
 static int distribute_points(bucket_t *bucket, int num)
@@ -162,7 +175,7 @@ static void bucket_pool_free(void)
 	free(buckets.pool);
 }
 
-static int bucket_get_neighbours(bucket_t *bucket, bucket_t **neighbours)
+static int bucket_get_neighbours(bucket_t *bucket)
 {
 	int lx = bucket->grid_coordinates.x - 1;		
 	int rx = bucket->grid_coordinates.x + 1;		
@@ -200,6 +213,8 @@ static int bucket_get_neighbours(bucket_t *bucket, bucket_t **neighbours)
 	int i;
 	for (i = 0; i < NUM_NEIGHBOURS; i++)
 	{
+		neighbours[i] = NULL;
+
 		if (bucket_pool_valid(&nidx[i])) 
 		{
 			int idx = nidx[i].y * buckets.grid_width + nidx[i].x;
@@ -210,17 +225,27 @@ static int bucket_get_neighbours(bucket_t *bucket, bucket_t **neighbours)
 	return num_neighbours;
 }
 
-static void worley_process_bucket(bucket_t *bucket, bucket_t **neighbours, int nnum, linked_list_t *dist_list, distance_func distance)
+static void worley_process_bucket(context_t *context, bucket_t *bucket, int num_neighbours, linked_list_t *dist_list, distance_func distance)
 {
 	int x, y, i, j;
 	for (y = bucket->start.y; y < bucket->end.y; y++)
-	for (x = bucket->start.x; y < bucket->end.x; y++)
+	for (x = bucket->start.x; x < bucket->end.x; x++)
 	{
-		for (i = 0; i < nnum; i++)
+		for (i = 0; i < num_neighbours; i++)
 		for (j = 0; j < neighbours[i]->num_points; j++)
 		{
-				
+			vec3d_t screen_coords;
+			screen_coords.x = x;
+			screen_coords.y = y;
+
+			double d = distance(&neighbours[i]->points[j], &screen_coords);
+			linked_list_sorted_insert_double(dist_list, d);
 		}
+
+		int h = 255 - (5 * (linked_list_get_double_at(dist_list, 0)));
+		clamp(&h, 0, 255);
+
+		context_set_pixel(context, x, y, h, h, h);
 	}
 }
 
@@ -229,44 +254,38 @@ void worley_generate(context_t *context, distance_func distance, int seed)
 {
 	if (!bucket_pool_init(context->width, context->height, seed))
 	{
-
+		context_fill(context, 255, 0, 0);
+		return;
 	}
 
-}
-
-int main()
-{
-	/*
-	int ret = bucket_pool_init(400, 300, 100);
-	if (ret == 0)
+	linked_list_t *dist_list = linked_list_init(double_cmp);
+	if (!dist_list)
 	{
 		bucket_pool_free();
-		return 0;
+		context_fill(context, 255, 0, 0);
+		return;
 	}
 
-	int i;
-	for (i = 0; i < buckets.grid_width * buckets.grid_height; i++)
+	int grid_x, grid_y;
+	for (grid_y = 0; grid_y < buckets.grid_height; grid_y++)
+	for (grid_x = 0; grid_x < buckets.grid_width ; grid_x++)
 	{
-		bucket_t *b = buckets.pool[i];
-		printf("start: %d, %d end: %d, %d\n", b->start.x, b->start.y, b->end.x, b->end.y);
+		bucket_t *b = buckets.pool[grid_y * buckets.grid_width + grid_x];
+		int nnum = bucket_get_neighbours(b);
+		worley_process_bucket(context, b, nnum, dist_list, distance);
+		linked_list_clear(dist_list);
 	}
 
-	int idx = 1 * buckets.grid_width + 0;
-	clear_neighbours_buf();
-	int n = bucket_get_neighbours(buckets.pool[idx], neighbours);
-	bucket_t *a = buckets.pool[idx];
-	printf("target start: %d, %d end: %d, %d\n", a->start.x, a->start.y, a->end.x, a->end.y);
-
-	printf("%d neigbours\n", n);
-
-	for (i = 0; i < n; i++)
-	{
-		bucket_t *b = neighbours[i];
-		printf("start: %d, %d end: %d, %d\n", b->start.x, b->start.y, b->end.x, b->end.y);
-	}
-
+	linked_list_free(dist_list);
 	bucket_pool_free();
+}
 
-	*/
-	return 0;
+void worley_generate_euclidean(context_t *context, int seed)
+{
+	worley_generate(context, euclidean_distance, seed);
+}
+
+void worley_generate_manhattan(context_t *context, int seed)
+{
+	worley_generate(context, manhattan_distance, seed);
 }

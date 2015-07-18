@@ -36,7 +36,7 @@ typedef struct bucket_pool
 
 /* so that we can have different dist funcs */
 typedef double (*distance_func)(vec3d_t *, vec3d_t *); 
-void worley_generate(struct context *, distance_func);
-void worley_generate_euclidean(struct context *);
-void worley_generate_manhattan(struct context *);
+void worley_generate(struct context *, distance_func, int);
+void worley_generate_euclidean(struct context *, int);
+void worley_generate_manhattan(struct context *, int);
 #endif
