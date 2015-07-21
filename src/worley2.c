@@ -3,9 +3,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include <math.h>
 #include "worley.h"
-#include "linked-list.h"
 #include "context.h"
 
 #define GRID_WIDTH 100
@@ -14,6 +14,8 @@
 
 static bucket_pool_t buckets;
 static bucket_t *neighbours[NUM_NEIGHBOURS];
+static double *distance_to_points;
+static int dist_vector_size;
 
 /* various dist funcs go here */
 static double euclidean_distance(vec3d_t *p1, vec3d_t *p2)
@@ -29,24 +31,17 @@ static double manhattan_distance(vec3d_t *p1, vec3d_t *p2)
 }
 /*end dist funcs */
 
+int qsort_cmp(const void *a, const void *b)
+{
+	double *x = (double *) a;	
+	double *y = (double *) b;	
+	return *x - *y;
+}
+
 static void clamp(int *actual, int min, int max)
 {
 	if (*actual < min) *actual = min;
 	if (*actual > max) *actual = max;
-}
-
-static int linked_list_sorted_insert_double(linked_list_t *list, double num)
-{
-	int *n = malloc(sizeof(double));
-	if (!n) return 0;
-	*n = num;
-	return linked_list_sorted_insert(list, (void *) n);
-}
-
-static double linked_list_get_double_at(linked_list_t *list, int index)
-{
-	const double *n = linked_list_get_element_at(list, index);
-	return *n;
 }
 
 static int double_cmp( void *a, void *b)
@@ -74,28 +69,30 @@ static int bucket_pool_valid(vec3i_t *v)
 	return 0;
 }
 
-static int distribute_points(bucket_t *bucket, int num)
+static int distribute_points(bucket_t *bucket, int min, int max)
 {
+	int num = randr(min, max);
+
 	bucket->points = malloc(sizeof(vec3d_t) * num);
 	if (!bucket->points) return 0;
+
+	bucket->num_points = num;
 
 	int i;
 	for (i = 0; i < num; i++)
 	{
-		int sx = bucket->grid_coordinates.x;
-		int sy = bucket->grid_coordinates.y;
+		int sx = bucket->start.x;
+		int sy = bucket->start.y;
 
 		bucket->points[i].x = randr(sx + 1, sx + GRID_WIDTH);
 		bucket->points[i].y = randr(sy + 1, sy + GRID_HEIGHT);
 		bucket->points[i].z = 0;
-
-		printf("%f %f\n", bucket->points[i].x, bucket->points[i].y);
 	}
 	
 	return 1;
 }
 
-static int bucket_pool_init(int width, int height, int seed)
+static int bucket_pool_init(int width, int height, int seed, int min, int max)
 {
 	/* seed for point coord generator */
 	srand(seed);
@@ -126,9 +123,6 @@ static int bucket_pool_init(int width, int height, int seed)
 			bucket->points = NULL;
 			bucket->num_points = 0;
 
-			/* failure mallocing bucket->points */
-			if (distribute_points(bucket, 30) == 0) return 0;
-
 			bucket->start.x = x;
 			bucket->start.y = y;
 			bucket->start.z = 0;
@@ -145,6 +139,9 @@ static int bucket_pool_init(int width, int height, int seed)
 			bucket->grid_coordinates.x = gx;
 			bucket->grid_coordinates.y = gy;
 			bucket->grid_coordinates.z = 0;
+
+			/* failure mallocing bucket->points */
+			if (distribute_points(bucket, min, max) == 0) return 0;
 
 			int idx = gy * buckets.grid_width + gx;
 			buckets.pool[idx] = bucket;
@@ -225,41 +222,65 @@ static int bucket_get_neighbours(bucket_t *bucket)
 	return num_neighbours;
 }
 
-static void worley_process_bucket(context_t *context, bucket_t *bucket, int num_neighbours, linked_list_t *dist_list, distance_func distance)
+static void worley_process_bucket(context_t *context, bucket_t *bucket, int num_neighbours, distance_func distance)
 {
 	int x, y, i, j;
 	for (y = bucket->start.y; y < bucket->end.y; y++)
 	for (x = bucket->start.x; x < bucket->end.x; x++)
 	{
+
+		int idx = 0;
+		vec3d_t screen_coords;
+		screen_coords.x = x;
+		screen_coords.y = y;
+
+		for (i = 0; i < bucket->num_points; i++)
+		{
+			double d = distance(&bucket->points[i], &screen_coords);
+			assert(idx < dist_vector_size);
+			distance_to_points[idx++] = d;
+
+		}
+
 		for (i = 0; i < num_neighbours; i++)
 		for (j = 0; j < neighbours[i]->num_points; j++)
 		{
-			vec3d_t screen_coords;
-			screen_coords.x = x;
-			screen_coords.y = y;
-
+			
 			double d = distance(&neighbours[i]->points[j], &screen_coords);
-			linked_list_sorted_insert_double(dist_list, d);
+			assert(idx < dist_vector_size);
+			distance_to_points[idx++] = d;
 		}
 
-		int h = 255 - (5 * (linked_list_get_double_at(dist_list, 0)));
+		qsort(distance_to_points, dist_vector_size, sizeof(double), qsort_cmp);
+
+		int h = 255 - (2.5 * (distance_to_points[1]));
 		clamp(&h, 0, 255);
 
 		context_set_pixel(context, x, y, h, h, h);
+
+		/* clear dist buffer */
+		for (i = 0; i < dist_vector_size; i++)
+			distance_to_points[i] = INT_MAX; 
 	}
 }
 
 
-void worley_generate(context_t *context, distance_func distance, int seed)
+void worley_generate(context_t *context, distance_func distance, int seed, int min_points, int max_points)
 {
-	if (!bucket_pool_init(context->width, context->height, seed))
+	assert(min_points > 0);
+	assert(max_points > 0);
+	assert(min_points < max_points);
+
+	if (!bucket_pool_init(context->width, context->height, seed, min_points, max_points))
 	{
 		context_fill(context, 255, 0, 0);
 		return;
 	}
 
-	linked_list_t *dist_list = linked_list_init(double_cmp);
-	if (!dist_list)
+	/* include current bucket into total count as well */
+	dist_vector_size = max_points * (NUM_NEIGHBOURS + 1);
+	distance_to_points = malloc(sizeof(double) * dist_vector_size);
+	if (!distance_to_points)
 	{
 		bucket_pool_free();
 		context_fill(context, 255, 0, 0);
@@ -272,20 +293,19 @@ void worley_generate(context_t *context, distance_func distance, int seed)
 	{
 		bucket_t *b = buckets.pool[grid_y * buckets.grid_width + grid_x];
 		int nnum = bucket_get_neighbours(b);
-		worley_process_bucket(context, b, nnum, dist_list, distance);
-		linked_list_clear(dist_list);
+		worley_process_bucket(context, b, nnum, distance);
 	}
 
-	linked_list_free(dist_list);
+	free(distance_to_points);
 	bucket_pool_free();
 }
 
-void worley_generate_euclidean(context_t *context, int seed)
+void worley_generate_euclidean(context_t *context, int seed, int min_points, int max_points)
 {
-	worley_generate(context, euclidean_distance, seed);
+	worley_generate(context, euclidean_distance, seed, min_points, max_points);
 }
 
-void worley_generate_manhattan(context_t *context, int seed)
+void worley_generate_manhattan(context_t *context, int seed, int min_points, int max_points)
 {
-	worley_generate(context, manhattan_distance, seed);
+	worley_generate(context, manhattan_distance, seed, min_points, max_points);
 }
