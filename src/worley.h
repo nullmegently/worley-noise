@@ -23,7 +23,6 @@ typedef struct bucket
 	vec3i_t end;
 	vec3i_t grid_coordinates;
 	vec3d_t *points;
-	double *dists_to_points;
 	int num_points;
 } bucket_t;
 
@@ -36,7 +35,7 @@ typedef struct bucket_pool
 
 /* so that we can have different dist funcs */
 typedef double (*distance_func)(vec3d_t *, vec3d_t *); 
-void worley_generate(struct context *, distance_func, int, int, int);
-void worley_generate_euclidean(struct context *, int, int, int);
-void worley_generate_manhattan(struct context *, int, int, int);
+typedef double (*n_closest_func)(double *);
+void worley_generate(struct context *, distance_func, n_closest_func, int, int, int, double);
+void worley(struct context*, int, int, int, double);
 #endif

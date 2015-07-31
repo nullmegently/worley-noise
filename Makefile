@@ -25,10 +25,10 @@ C_OBJFILES = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(C_SRCFILES))
 all: mk_obj_dir voxelspace 
 
 voxelspace: $(C_OBJFILES) 
-	$(CC) $(CCFLAGS) $^ $(LIBSFLAGS) -o $(EXECNAME)
+	$(CC) $(CCFLAGS) $^ $(LIBSFLAGS) -g -o $(EXECNAME)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) $(CCFLAGS) -c $< -o $@
+	$(CC) $(CCFLAGS) -c -g $< -o $@
 
 .PHONY: clean mk_obj_dir
 

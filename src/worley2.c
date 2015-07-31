@@ -8,8 +8,8 @@
 #include "worley.h"
 #include "context.h"
 
-#define GRID_WIDTH 100
-#define GRID_HEIGHT 100
+#define GRID_WIDTH 150 
+#define GRID_HEIGHT 150 
 #define NUM_NEIGHBOURS 8
 
 static bucket_pool_t buckets;
@@ -30,6 +30,22 @@ static double manhattan_distance(vec3d_t *p1, vec3d_t *p2)
 	return fabs(p1->x - p2->x) + fabs(p1->y - p2->y);
 }
 /*end dist funcs */
+
+/* determine which nth-closest point should be used for coloring */
+static double first(double *distances)
+{
+	return distances[0];
+}
+
+static double second(double *distances)
+{
+	return distances[1];
+}
+
+static double second_minus_first(double *distances)
+{
+	return distances[1] - distances[0];
+}
 
 int qsort_cmp(const void *a, const void *b)
 {
@@ -222,7 +238,7 @@ static int bucket_get_neighbours(bucket_t *bucket)
 	return num_neighbours;
 }
 
-static void worley_process_bucket(context_t *context, bucket_t *bucket, int num_neighbours, distance_func distance)
+static void worley_process_bucket(context_t *context, bucket_t *bucket, int num_neighbours, distance_func distance, n_closest_func select_point, double scale)
 {
 	int x, y, i, j;
 	for (y = bucket->start.y; y < bucket->end.y; y++)
@@ -239,7 +255,6 @@ static void worley_process_bucket(context_t *context, bucket_t *bucket, int num_
 			double d = distance(&bucket->points[i], &screen_coords);
 			assert(idx < dist_vector_size);
 			distance_to_points[idx++] = d;
-
 		}
 
 		for (i = 0; i < num_neighbours; i++)
@@ -253,7 +268,7 @@ static void worley_process_bucket(context_t *context, bucket_t *bucket, int num_
 
 		qsort(distance_to_points, dist_vector_size, sizeof(double), qsort_cmp);
 
-		int h = 255 - (2.5 * (distance_to_points[1]));
+		int h = 255 - (scale * select_point(distance_to_points));
 		clamp(&h, 0, 255);
 
 		context_set_pixel(context, x, y, h, h, h);
@@ -265,7 +280,7 @@ static void worley_process_bucket(context_t *context, bucket_t *bucket, int num_
 }
 
 
-void worley_generate(context_t *context, distance_func distance, int seed, int min_points, int max_points)
+void worley_generate(context_t *context, distance_func distance, n_closest_func select_point, int seed, int min_points, int max_points, double scale)
 {
 	assert(min_points > 0);
 	assert(max_points > 0);
@@ -293,19 +308,14 @@ void worley_generate(context_t *context, distance_func distance, int seed, int m
 	{
 		bucket_t *b = buckets.pool[grid_y * buckets.grid_width + grid_x];
 		int nnum = bucket_get_neighbours(b);
-		worley_process_bucket(context, b, nnum, distance);
+		worley_process_bucket(context, b, nnum, distance, select_point, scale);
 	}
 
 	free(distance_to_points);
 	bucket_pool_free();
 }
 
-void worley_generate_euclidean(context_t *context, int seed, int min_points, int max_points)
+void worley(context_t *context, int seed, int min, int max, double scale)
 {
-	worley_generate(context, euclidean_distance, seed, min_points, max_points);
-}
-
-void worley_generate_manhattan(context_t *context, int seed, int min_points, int max_points)
-{
-	worley_generate(context, manhattan_distance, seed, min_points, max_points);
+	worley_generate(context, euclidean_distance, first, seed, min, max, scale);
 }
